@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import multer from "multer";
-import "@tensorflow/tfjs-node";
+// import "@tensorflow/tfjs-node";
 import { Canvas, Image, ImageData, loadImage } from "canvas";
 import * as faceapi from "face-api.js";
 
@@ -39,17 +39,44 @@ app.post("/face-recognition", upload.single("image"), async (req, res) => {
       error: "No file",
     });
   }
-  // 2. Call the faceapi function
+
+  // 2. Call the faceapi function for reference image
+  const refImg = await loadImage("./refs/ref.jpg");
+  //@ts-ignore
+  const refResult = await faceapi.detectSingleFace(refImg).withFaceLandmarks().withFaceDescriptor();
+
+  if (!refResult) {
+    // error...
+    return res.status(500).send("Reference image not good");
+  }
+  const labeledDescriptor = new faceapi.LabeledFaceDescriptors("admin", [refResult.descriptor]);
+  const faceMatcher = new faceapi.FaceMatcher(labeledDescriptor);
+
+  // 3. Call the faceapi function for the uploaded image
   const img = await loadImage("./uploads/face.jpg");
   //@ts-ignore
-  const result = await faceapi.detectSingleFace(img);
+  const result = await faceapi.detectAllFaces(img).withFaceLandmarks().withFaceDescriptors();
   // 3. Best match
-  // 4. Return the results
-  return res.status(200).send(result);
+  if (result.length > 0) {
+    let bestOne = { label: "not found", distance: 1.0 };
+    result.forEach((fd) => {
+      const bestMatch = faceMatcher.findBestMatch(fd.descriptor);
+      if (bestMatch.distance < bestOne.distance) {
+        bestOne = {
+          label: bestMatch.label,
+          distance: bestMatch.distance,
+        };
+      }
+    });
+    return res.status(200).send(bestOne);
+  } else {
+    return res.status(400).send("Image not good");
+  }
 });
 
 app.listen(3000, async () => {
   await faceapi.nets.ssdMobilenetv1.loadFromDisk("./models");
   await faceapi.nets.faceRecognitionNet.loadFromDisk("./models");
+  await faceapi.nets.faceLandmark68Net.loadFromDisk("./models");
   console.log("Server running on http://localhost:3000");
 });
