@@ -4,6 +4,7 @@ import multer from "multer";
 // import "@tensorflow/tfjs-node";
 import { Canvas, Image, ImageData, loadImage } from "canvas";
 import * as faceapi from "face-api.js";
+import { writeFile } from "fs/promises";
 
 //@ts-ignore
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
@@ -52,6 +53,9 @@ app.post("/face-recognition", upload.single("image"), async (req, res) => {
   const labeledDescriptor = new faceapi.LabeledFaceDescriptors("admin", [refResult.descriptor]);
   const faceMatcher = new faceapi.FaceMatcher(labeledDescriptor);
 
+  const matcherJson = await faceMatcher.toJSON();
+  await jsonToFile(matcherJson);
+
   // 3. Call the faceapi function for the uploaded image
   const img = await loadImage("./uploads/face.jpg");
   //@ts-ignore
@@ -73,6 +77,11 @@ app.post("/face-recognition", upload.single("image"), async (req, res) => {
     return res.status(400).send("Image not good");
   }
 });
+
+async function jsonToFile(json: any) {
+  await writeFile("./refs/matcher.json", JSON.stringify(json, null, 2));
+  return;
+}
 
 app.listen(3000, async () => {
   await faceapi.nets.ssdMobilenetv1.loadFromDisk("./models");
