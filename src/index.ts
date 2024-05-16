@@ -6,6 +6,7 @@ import { Canvas, Image, ImageData, loadImage } from "canvas";
 import * as faceapi from "face-api.js";
 import { initializeApp, cert } from "firebase-admin/app";
 import { downloadFile, jsonToFile, loadFaceMatcher, uploadFile } from "./helper";
+import cors from "cors";
 
 initializeApp({
   credential: cert("./account.json"),
@@ -28,6 +29,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 app.use(bodyParser.json());
+app.use(cors());
 
 app.post("/face-register", upload.single("image"), async (req, res) => {
   const file = req.file;

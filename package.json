@@ -11,7 +11,9 @@
   "license": "ISC",
   "dependencies": {
     "@tensorflow/tfjs-node": "^1.7.0",
+    "@types/cors": "^2.8.17",
     "canvas": "^2.11.2",
+    "cors": "^2.8.5",
     "express": "^4.19.2",
     "face-api.js": "^0.22.2",
     "firebase-admin": "^12.1.0",
